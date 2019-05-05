@@ -6,6 +6,7 @@ import javax.swing.JFrame
 import javax.swing.JLabel
 import javax.swing.JPanel
 import javax.swing.JScrollPane
+import javax.vecmath.Vector3d
 
 fun main(args: Array<String>) {
     val view = MainView()
@@ -20,17 +21,23 @@ class MainView: JFrame() {
     // Panels
     var simViewPanel = SimViewPanel()
 
+    // World
+    val world = World()
+
     fun run() {
         prepareGui()
+        world.create(bounds)
         while (true) {
-            simViewPanel.repaint()
+            val innerBounds = Rectangle(bounds.width - insets.left - insets.right, bounds.height - insets.top - insets.bottom)
+            world.update(innerBounds)
             repaint()
+            Thread.sleep(16)
         }
     }
 
     fun prepareGui() {
 
-        setLocation(0, 0)
+        setLocation(200, 200)
         title = "Life.kt"
 
         val mainPanel = JPanel()
@@ -40,7 +47,7 @@ class MainView: JFrame() {
         c.weighty = 1.0
         c.gridx = 0
         c.gridy = 0
-        simViewPanel.preferredSize = Dimension(1280, 720)
+        simViewPanel.preferredSize = Dimension(1920, 720)
         mainPanel.add(simViewPanel, c)
 
         add(mainPanel)
@@ -66,6 +73,12 @@ class MainView: JFrame() {
                 }
                 g.color = Color(0x408040)
                 g.fillRect(0,0, bounds.width, bounds.height)
+                for (foodItem in world.food) {
+                    foodItem.render(g)
+                }
+                for (bug in world.bugs) {
+                    bug.render(g)
+                }
                 g.color = Color(0xC0C0C0)
                 val font = Font("Monospaced", BOLD, 20)
                 g.font = font
