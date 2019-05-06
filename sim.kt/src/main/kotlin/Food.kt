@@ -5,13 +5,14 @@ import java.awt.geom.Ellipse2D
 import javax.vecmath.Vector3d
 
 class Food(origin: Vector3d, angle: Double): Entity(origin, angle) {
+    var eaten = false
     init {
         width = 20.0
         height = 20.0
         calculateBounds()
     }
     fun render(g: Graphics?) {
-        if (g == null) {
+        if (g == null || eaten) {
             return
         }
         val g2 = g as Graphics2D

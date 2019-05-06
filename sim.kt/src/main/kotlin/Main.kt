@@ -47,7 +47,7 @@ class MainView: JFrame() {
         c.weighty = 1.0
         c.gridx = 0
         c.gridy = 0
-        simViewPanel.preferredSize = Dimension(1920, 720)
+        simViewPanel.preferredSize = Dimension(1920, 1200)
         mainPanel.add(simViewPanel, c)
 
         add(mainPanel)
@@ -73,16 +73,11 @@ class MainView: JFrame() {
                 }
                 g.color = Color(0x408040)
                 g.fillRect(0,0, bounds.width, bounds.height)
-                for (foodItem in world.food) {
-                    foodItem.render(g)
-                }
-                for (bug in world.bugs) {
-                    bug.render(g)
-                }
+                world.render(g)
                 g.color = Color(0xC0C0C0)
                 val font = Font("Monospaced", BOLD, 20)
                 g.font = font
-                g.drawString(String.format("FPS=%3.2f", fps), 0, height -insets.top - 24)
+                g.drawString(String.format("FPS=%3.2f. foodAvg=%3.2f, delta=%3.2f", fps, world.bugs[0].foodAvg, world.bugs[0].foodDelta), 0, height -insets.top - 24)
             }
         }
     }
