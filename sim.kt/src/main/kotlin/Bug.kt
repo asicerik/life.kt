@@ -10,8 +10,15 @@ class Bug(origin: Vector3d, angle: Double): Entity(origin, angle) {
         for (i in 0..9) {
             vars.add(Math.random())
         }
+//        vars[0] = 1.0
+//        vars[1] = 0.0
+//        vars[0] = 0.6
+//        vars[1] = 0.4
+//        vars[2] = 0.75
+//        vars[3] = 0.5
+//        vars[4] = 0.5
     }
-    val healthDec = 0.002
+    val healthDec = 0.001
     val healthInc = 0.5
     var foodAvg = 0.0
     var foodDelta = 0.0
@@ -24,10 +31,10 @@ class Bug(origin: Vector3d, angle: Double): Entity(origin, angle) {
         val child = Bug(Vector3d(origin), 0.0)
         child.generation = generation+1
         child.mutations = mutations
-        for (i in 0 until child.vars.size) {
+        for (i in 0 until 5) {
             child.vars[i] = vars[i]
             if ((Math.random() < mutationChance)) {
-                child.vars[i] += (Math.random() - 0.5) / 10
+                child.vars[i] += (Math.random() - 0.5) / 1
                 child.mutations++
             }
         }
@@ -66,17 +73,21 @@ class Bug(origin: Vector3d, angle: Double): Entity(origin, angle) {
 //            angle += foodMult * (Math.random() - 0.5) / 1
 
             // Calculate food to the left and right
-            leftSensor.x = origin.x + Math.sin(angle - Math.PI/2) * 50 * vars[2]
-            leftSensor.y = origin.y - Math.cos(angle - Math.PI/2) * 50 * vars[2]
-            rightSensor.x = origin.x + Math.sin(angle + Math.PI/2) * 50 * vars[2]
-            rightSensor.y = origin.y - Math.cos(angle + Math.PI/2) * 50 * vars[2]
+            leftSensor.x = origin.x + Math.sin(angle - Math.PI/2 * vars[4]) * 100 * vars[2]
+            leftSensor.y = origin.y - Math.cos(angle - Math.PI/2 * vars[4]) * 100 * vars[2]
+            rightSensor.x = origin.x + Math.sin(angle + Math.PI/2 * vars[4]) * 100 * vars[2]
+            rightSensor.y = origin.y - Math.cos(angle + Math.PI/2 * vars[4]) * 100 * vars[2]
             val leftFood = world.getChemGridAt(leftSensor.x, leftSensor.y)
             val rightFood = world.getChemGridAt(rightSensor.x, rightSensor.y)
-            angle += (vars[0] - 0.5) * rightFood + (vars[1] - 0.5) * leftFood //+ (Math.random() - 0.5) / (vars[4]*10)
+            angle += (vars[0] - 0.5) * rightFood + (vars[1] - 0.5) * leftFood + (Math.random() - 0.5) / (vars[4]*10)
             origin.x += Math.sin(angle) * vars[3] * 5
             origin.y -= Math.cos(angle) * vars[3] * 5
-            origin.x = clip(origin.x, 0.0, world.bounds.width.toDouble())
-            origin.y = clip(origin.y, 0.0, world.bounds.height.toDouble())
+            if (origin.x <= 0 || origin.x >= world.bounds.width.toDouble() ||
+                origin.y <= 0 || origin.y >= world.bounds.height.toDouble()) {
+                angle += Math.PI
+            }
+//            origin.x = clip(origin.x, 0.0, world.bounds.width.toDouble())
+//            origin.y = clip(origin.y, 0.0, world.bounds.height.toDouble())
         }
     }
 

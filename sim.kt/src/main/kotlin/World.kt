@@ -2,7 +2,9 @@ import java.awt.Color
 import java.awt.Graphics
 import java.awt.Rectangle
 import java.lang.Exception
+import java.lang.Math.sqrt
 import javax.vecmath.Vector3d
+import kotlinx.coroutines.*
 
 class World {
 
@@ -10,15 +12,16 @@ class World {
 
     // Bugs
     val bugs = mutableListOf<Bug>()
-    val numBugs = 50
+    val numBugs = 25
+    val spawnChance = 0.0001
 
     // Food
     val food = mutableListOf<Food>()
     val numFood = 50
-    val regrowthChance = 0.005
+    val regrowthChance = 0.001
 
     // Chemical grid
-    val chemGridSize = 25
+    val chemGridSize = 20
     var chemGridUpdateCount = 0
     var chemGrid = arrayOf(arrayOf(0.0))
 
@@ -27,6 +30,11 @@ class World {
     fun create(bounds: Rectangle) {
         this.bounds = bounds
         createChemGrid()
+//        GlobalScope.launch  { while (true) {
+//                updateChemGrid()
+//                delay(10)
+//            }
+//        }
         for (i in 0 until numBugs) {
             val x = bounds.width * Math.random()
             val y = bounds.height * Math.random()
@@ -48,13 +56,23 @@ class World {
         }
         updateChemGrid()
         val newChildren = mutableListOf<Bug>()
-        for (bug in bugs) {
+        for (i in 0 until bugs.size) {
+            val bug = bugs[i]
+            // Is this bug dead?
+            if (bug.health == 0.0) {
+                if (Math.random() < spawnChance) {
+                    val x = bounds.width * Math.random()
+                    val y = bounds.height * Math.random()
+                    val theta = Math.PI * Math.random()
+                    bugs[i] = Bug(Vector3d(x, y, 0.0), theta)
+                }
+            }
             bug.update(this)
             // Children
             if (bug.health > 0.95) {
-                if ((System.currentTimeMillis() - bug.lastBirthTime) > 10000) {
+                if ((System.currentTimeMillis() - bug.lastBirthTime) > 30000) {
                     newChildren.add(bug.spawnChild())
-                    bug.health = 0.5
+                    bug.health = 0.75
                     bug.lastBirthTime = System.currentTimeMillis()
                 }
             }
@@ -103,13 +121,17 @@ class World {
             return res / 4
         } else {
             if (xG > (chemGrid.size - 1)) {
-                xG--
+                xG = chemGrid.size - 1
+            } else if (xG < 0) {
+                xG = 0
             }
             if (yG > (chemGrid[0].size - 1)) {
-                yG--
+                yG = chemGrid[0].size - 1
+            } else if (yG < 0){
+                yG = 0
             }
             try {
-                return chemGrid[xG][yG]
+                return sqrt(chemGrid[xG][yG])
             } catch (e: Exception) {
                 println(e)
             }
@@ -134,11 +156,15 @@ class World {
                         }
                     }
                 } else {
-                    var intens = chemGrid[xG][yG]
-                    if (intens > 1) {
-                        intens = 1.0
+                    var gIntens = Math.sqrt(chemGrid[xG][yG])*1 + 0.1
+                    var rIntens = Math.sqrt(chemGrid[xG][yG])/4
+                    if (gIntens > 1) {
+                        gIntens = 1.0
                     }
-                    g.color = Color(0.0f, 0.0f, intens.toFloat())
+                    if (rIntens > 1) {
+                        rIntens = 1.0
+                    }
+                    g.color = Color(0.0f, gIntens.toFloat(), rIntens.toFloat())
                     g.fillRect(x, y, chemGridSize, chemGridSize)
                 }
             }
@@ -156,6 +182,70 @@ class World {
     }
 
     private fun updateChemGrid() {
+        if (chemGrid.isEmpty())
+            return
+        val gridMinus = 0.1
+        var gridPlus = 0.21
+        for (xG in 1 until (chemGrid.size-1)) {
+//        val xG = chemGridUpdateCount
+//        if (xG > 0 && xG < (chemGrid.size-1)) {
+            for (yG in 1 until (chemGrid[0].size-1)) {
+                chemGrid[xG][yG] -= gridMinus
+                val xMin = xG * chemGridSize
+                val yMin = yG * chemGridSize
+                val xMax = xMin + chemGridSize
+                val yMax = yMin + chemGridSize
+                var foodCount = 0
+                for (foodItem in food) {
+                    if (foodItem.eaten)
+                        continue
+                    if (foodItem.origin.x >= xMin && foodItem.origin.x <= xMax &&
+                        foodItem.origin.y >= yMin && foodItem.origin.y <= yMax) {
+                        foodCount++
+                    }
+                }
+                chemGrid[xG][yG] = 0.0
+                if (foodCount > 0) {
+                    chemGrid[xG][yG] = foodCount.toDouble() * 1
+                } else {
+                    // Add the neighbors
+                    for (xDelta in -1..1) {
+                        for (yDelta in -1..1) {
+                            if (xDelta == 0 || yDelta == 0) {
+                                if (chemGrid[xG + xDelta][yG + yDelta] > chemGrid[xG][yG])
+                                    chemGrid[xG][yG] += chemGrid[xG + xDelta][yG + yDelta] * gridPlus
+                            } else {
+                                if (chemGrid[xG + xDelta][yG + yDelta] > chemGrid[xG][yG])
+                                    chemGrid[xG][yG] += chemGrid[xG + xDelta][yG + yDelta] * (gridPlus / 8)
+                            }
+                        }
+                    }
+//                    if (chemGrid[xG - 1][yG - 1] > chemGrid[xG][yG])
+//                        chemGrid[xG][yG] += chemGrid[xG - 1][yG - 1] * gridPlus
+//                    if (chemGrid[xG + 1][yG - 1] > chemGrid[xG][yG])
+//                        chemGrid[xG][yG] += chemGrid[xG + 1][yG - 1] * gridPlus
+//                    if (chemGrid[xG - 1][yG + 1] > chemGrid[xG][yG])
+//                        chemGrid[xG][yG] += chemGrid[xG - 1][yG + 1] * gridPlus
+//                    if (chemGrid[xG + 1][yG + 1] > chemGrid[xG][yG])
+//                        chemGrid[xG][yG] += chemGrid[xG + 1][yG + 1] * gridPlus
+//                    if (chemGrid[xG - 1][yG - 1] > chemGrid[xG][yG])
+//                        chemGrid[xG][yG] += chemGrid[xG - 1][yG - 1] * gridPlus
+//                    if (chemGrid[xG][yG - 1] > chemGrid[xG][yG])
+//                        chemGrid[xG][yG] += chemGrid[xG][yG - 1] * gridPlus
+//                    if (chemGrid[xG + 1][yG - 1] > chemGrid[xG][yG])
+//                        chemGrid[xG][yG] += chemGrid[xG + 1][yG - 1] * gridPlus
+                }
+
+                if (chemGrid[xG][yG] < 0.0)
+                    chemGrid[xG][yG] = 0.0
+            }
+        }
+        chemGridUpdateCount++
+        if (chemGridUpdateCount >= chemGrid.size) {
+            chemGridUpdateCount = 0
+        }
+    }
+    private fun updateChemGridDist() {
         if (chemGrid.isEmpty())
             return
         val xG = chemGridUpdateCount

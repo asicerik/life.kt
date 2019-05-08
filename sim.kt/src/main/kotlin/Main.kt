@@ -37,7 +37,7 @@ class MainView: JFrame() {
 
     fun prepareGui() {
 
-        setLocation(200, 200)
+        setLocation(0, 0)
         title = "Life.kt"
 
         val mainPanel = JPanel()
@@ -47,7 +47,7 @@ class MainView: JFrame() {
         c.weighty = 1.0
         c.gridx = 0
         c.gridy = 0
-        simViewPanel.preferredSize = Dimension(1920, 1200)
+        simViewPanel.preferredSize = Dimension(2600, 1400)
         mainPanel.add(simViewPanel, c)
 
         add(mainPanel)
